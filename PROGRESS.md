@@ -13,9 +13,10 @@
 - [x] 6. Notifications
 - [x] 7. Webhooks
 - [x] 8. Owner and staff tools
-- [ ] 9. Polish
+- [x] 9. Polish
 
 ## Known issues
+- Not verified in this environment (no Docker daemon): `docker compose up`, the Dockerfile, and the GitHub Actions run. The app itself was run from the packaged jar against a real PostgreSQL and `scripts/demo.sh` passed end to end; Mailpit was not available, so emails were verified through tests only.
 - `docker compose up` / Dockerfile are written but not run here (no Docker daemon).
 - Buffers: appointment must sit in working hours and clear of time off; appointment+buffers must clear other bookings (stored ranges include buffers).
 - Booking: holds and bookings are separate tables, each with a GiST exclusion constraint on a generated `time_range` (appointment + buffers). Hold-vs-booking overlap is checked after the hold insert; the bookings constraint is the final guard.
@@ -24,3 +25,8 @@
 - Webhooks: transactional outbox (rows written in the booking tx, delivered after commit + by retry job), HMAC-SHA256 `X-Slotwise-Signature: t=..,v1=..`, 6 attempts with backoff, per-attempt log, SSRF guard (`UrlGuard`; private targets only with WEBHOOKS_ALLOW_PRIVATE_TARGETS=true).
 - Owner/staff tools: filtered booking list (Specifications), stats (SQL in business zone), staff schedule, token-protected iCal feed (HMAC of staff id), audit log (JSONB before/after written in the business transaction), Bucket4j in-memory rate limiting (public + auth groups).
 - Tests share one cached Spring context and a MutableClock; `AbstractIntegrationTest` resets the clock before each test.
+
+## Status
+All 9 milestones are done: 142 tests green, Spotless clean, JaCoCo gate (>= 80% on service + availability) met.
+
+Possible follow-ups: distributed rate-limit backend, working hours that cross midnight, staff-initiated reschedule, email localisation, per-business webhook secret rotation.
