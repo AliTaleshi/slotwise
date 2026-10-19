@@ -2,6 +2,8 @@ spring:
   mail:
     host: localhost
 slotwise:
+  webhooks:
+    allow-private-targets: true
   scheduling:
     enabled: false
   jwt:

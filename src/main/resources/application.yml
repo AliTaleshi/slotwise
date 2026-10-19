@@ -59,3 +59,7 @@ slotwise:
   jobs:
     reminders-interval: PT1M
     hold-cleanup-interval: PT1M
+    webhook-retry-interval: PT30S
+  webhooks:
+    allow-private-targets: ${WEBHOOKS_ALLOW_PRIVATE_TARGETS:false}
+    timeout: 5s
