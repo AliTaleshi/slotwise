@@ -85,19 +85,67 @@ public class AvailabilityService {
             .filter(o -> o.isActive() && o.getBusinessId().equals(business.getId()))
             .orElseThrow(() -> ApiException.notFound("Service"));
 
-    List<Staff> qualified =
-        staff.findByBusinessIdAndActiveTrueOrderByNameAsc(business.getId()).stream()
-            .filter(s -> s.getOfferingIds().contains(offering.getId()))
-            .filter(s -> staffId == null || s.getId().equals(staffId))
-            .toList();
+    List<Staff> qualified = qualifiedStaff(business, offering, staffId);
     if (staffId != null && qualified.isEmpty()) {
       throw new ApiException(
           ErrorCode.NOT_FOUND, "Staff member not found or does not perform this service");
     }
 
-    Instant now = clock.instant();
-    List<StaffSchedule> schedules = schedules(business, qualified, from, to, now);
-    AvailabilityQuery query =
+    Map<LocalDate, List<Slot>> slots =
+        compute(business, offering, qualified, from, to, clock.instant(), null);
+    List<DayAvailability> days =
+        slots.entrySet().stream()
+            .map(
+                e ->
+                    new DayAvailability(
+                        e.getKey(), e.getValue().stream().map(sl -> toDto(sl, business)).toList()))
+            .toList();
+    return new AvailabilityResponse(offering.getId(), business.getTimeZone(), from, to, days);
+  }
+
+  /**
+   * Staff members who are free for exactly this start time, according to the same rules as the
+   * public availability listing (grid, working hours, policies, bookings, holds). Used to validate
+   * holds and reschedules; {@code excludeBookingId} lets a booking move over its own old slot.
+   */
+  @Transactional(readOnly = true)
+  public List<UUID> freeStaffAt(
+      Business business,
+      Offering offering,
+      Instant start,
+      UUID staffIdOrNull,
+      UUID excludeBookingId) {
+    List<Staff> qualified = qualifiedStaff(business, offering, staffIdOrNull);
+    if (qualified.isEmpty()) {
+      return List.of();
+    }
+    LocalDate date = start.atZone(business.zone()).toLocalDate();
+    return compute(business, offering, qualified, date, date, clock.instant(), excludeBookingId)
+        .getOrDefault(date, List.of())
+        .stream()
+        .filter(s -> s.start().equals(start))
+        .findFirst()
+        .map(Slot::staffIds)
+        .orElse(List.of());
+  }
+
+  private List<Staff> qualifiedStaff(Business business, Offering offering, UUID staffIdOrNull) {
+    return staff.findByBusinessIdAndActiveTrueOrderByNameAsc(business.getId()).stream()
+        .filter(s -> s.getOfferingIds().contains(offering.getId()))
+        .filter(s -> staffIdOrNull == null || s.getId().equals(staffIdOrNull))
+        .toList();
+  }
+
+  private Map<LocalDate, List<Slot>> compute(
+      Business business,
+      Offering offering,
+      List<Staff> qualified,
+      LocalDate from,
+      LocalDate to,
+      Instant now,
+      UUID excludeBookingId) {
+    List<StaffSchedule> schedules = schedules(business, qualified, from, to, now, excludeBookingId);
+    return calculator.calculate(
         new AvailabilityQuery(
             business.zone(),
             now,
@@ -109,20 +157,16 @@ public class AvailabilityService {
             Duration.ofMinutes(offering.getBufferAfter()),
             from,
             to,
-            schedules);
-
-    List<DayAvailability> days =
-        calculator.calculate(query).entrySet().stream()
-            .map(
-                e ->
-                    new DayAvailability(
-                        e.getKey(), e.getValue().stream().map(s -> toDto(s, business)).toList()))
-            .toList();
-    return new AvailabilityResponse(offering.getId(), business.getTimeZone(), from, to, days);
+            schedules));
   }
 
   private List<StaffSchedule> schedules(
-      Business business, List<Staff> members, LocalDate from, LocalDate to, Instant now) {
+      Business business,
+      List<Staff> members,
+      LocalDate from,
+      LocalDate to,
+      Instant now,
+      UUID excludeBookingId) {
     if (members.isEmpty()) {
       return List.of();
     }
@@ -138,7 +182,7 @@ public class AvailabilityService {
     Map<UUID, List<TimeOff>> off =
         timeOff.findOverlapping(ids, windowStart, windowEnd).stream()
             .collect(Collectors.groupingBy(TimeOff::getStaffId));
-    Map<UUID, List<TimeInterval>> busy = busySource.busy(ids, window, now);
+    Map<UUID, List<TimeInterval>> busy = busySource.busy(ids, window, now, excludeBookingId);
 
     return members.stream()
         .map(

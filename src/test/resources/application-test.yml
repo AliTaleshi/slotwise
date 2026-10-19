@@ -4,3 +4,5 @@ spring:
 slotwise:
   jwt:
     secret: test-secret-test-secret-test-secret-test-secret
+    # tests move the fake clock by days; keep access tokens valid across those jumps
+    access-ttl: 3650d

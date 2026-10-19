@@ -38,6 +38,15 @@ public class SecurityConfig {
                     .requestMatchers(
                         HttpMethod.GET, "/v1/businesses/*/public", "/v1/businesses/*/availability")
                     .permitAll()
+                    // booking access is decided per booking in the service (account or manage
+                    // token)
+                    .requestMatchers(HttpMethod.POST, "/v1/holds", "/v1/bookings")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/v1/bookings/*")
+                    .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST, "/v1/bookings/*/reschedule", "/v1/bookings/*/cancel")
+                    .permitAll()
                     .requestMatchers(
                         "/actuator/health/**",
                         "/actuator/info",

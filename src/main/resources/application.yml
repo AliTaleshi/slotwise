@@ -42,3 +42,6 @@ slotwise:
     issuer: slotwise
     access-ttl: ${JWT_ACCESS_TTL:15m}
     refresh-ttl: ${JWT_REFRESH_TTL:14d}
+  booking:
+    hold-ttl: ${HOLD_TTL:10m}
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:8080}
