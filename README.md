@@ -112,28 +112,30 @@ JWT_SECRET=$(openssl rand -base64 48) SPRING_PROFILES_ACTIVE=dev ./mvnw spring-b
 ```bash
 BASE=http://localhost:8080
 SERVICE=$(curl -s $BASE/v1/businesses/demo-clinic/public | jq -r '.services[] | select(.name=="Consultation").id')
+DAY=$(date -d "next wednesday" +%F)        # macOS: date -v+wed +%F
 
-# 1. check availability (pick a weekday in the next days)
-curl -s "$BASE/v1/businesses/demo-clinic/availability?serviceId=$SERVICE&from=2030-01-16&to=2030-01-16" | jq '.days[0].slots[0:3]'
+# 1. check availability
+SLOTS=$(curl -s "$BASE/v1/businesses/demo-clinic/availability?serviceId=$SERVICE&from=$DAY&to=$DAY")
+echo $SLOTS | jq '.days[0].slots[0:3]'
+START=$(echo $SLOTS | jq -r '.days[0].slots[2].start')
 
-# 2. hold a slot for 10 minutes
-HOLD=$(curl -s -X POST $BASE/v1/holds -H 'Content-Type: application/json' \
-  -d "{\"serviceId\":\"$SERVICE\",\"start\":\"2030-01-16T10:00:00+01:00\"}")
-HOLD_ID=$(echo $HOLD | jq -r .holdId)
+# 2. hold a slot for 10 minutes (a second request for the same slot/staff returns 409)
+HOLD_ID=$(curl -s -X POST $BASE/v1/holds -H 'Content-Type: application/json' \
+  -d "{\"serviceId\":\"$SERVICE\",\"start\":\"$START\"}" | jq -r .holdId)
 
-# 3. confirm the booking (guest); keep the manage token
+# 3. confirm the booking as a guest; keep the manage token
 BOOKING=$(curl -s -X POST $BASE/v1/bookings -H 'Content-Type: application/json' -H 'Idempotency-Key: my-retry-safe-key-1' \
   -d "{\"holdId\":\"$HOLD_ID\",\"guestName\":\"Sam Guest\",\"guestEmail\":\"sam@example.com\"}")
 ID=$(echo $BOOKING | jq -r .id); TOKEN=$(echo $BOOKING | jq -r .manageToken)
 
-# 4. reschedule, then 5. cancel – no account needed, the token is the key
+# 4. reschedule to another free slot that day, then 5. cancel – no account needed, the token is the key
+NEW=$(echo $SLOTS | jq -r '.days[0].slots[8].start')
 curl -s -X POST $BASE/v1/bookings/$ID/reschedule -H "X-Manage-Token: $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"newStart":"2030-01-16T14:00:00+01:00"}' | jq '{status,start}'
+  -d "{\"newStart\":\"$NEW\"}" | jq '{status,start}'
 curl -s -X POST $BASE/v1/bookings/$ID/cancel -H "X-Manage-Token: $TOKEN" | jq '{status}'
 ```
 
-(The dates above are examples; the seeded business only accepts dates within its 60 day window from
-*today*, so `scripts/demo.sh` picks real dates for you.) Owner calls need a bearer token:
+Owner calls need a bearer token:
 
 ```bash
 OWNER=$(curl -s -X POST $BASE/v1/auth/login -H 'Content-Type: application/json' \
