@@ -302,10 +302,11 @@ public class BookingService {
                 throw new ApiException(
                     ErrorCode.INVALID_STATE, "The appointment has not started yet");
               }
+              String previous = booking.getStatus().name();
               booking.setStatus(newStatus);
               bookings.saveAndFlush(booking);
               events.publishEvent(
-                  new BookingStatusChanged(booking.getId(), newStatus.name(), user.id()));
+                  new BookingStatusChanged(booking.getId(), previous, newStatus.name(), user.id()));
               return booking;
             });
     return views.view(updated, false);

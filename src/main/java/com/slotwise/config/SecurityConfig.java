@@ -44,6 +44,9 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/v1/bookings/*")
                     .permitAll()
+                    // iCal clients cannot log in; the feed is protected by the token in its URL
+                    .requestMatchers(HttpMethod.GET, "/v1/staff/*/calendar.ics")
+                    .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/v1/bookings/*/reschedule", "/v1/bookings/*/cancel")
                     .permitAll()

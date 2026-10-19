@@ -1,5 +1,6 @@
 package com.slotwise.staff.service;
 
+import com.slotwise.audit.service.AuditService;
 import com.slotwise.auth.entity.Role;
 import com.slotwise.auth.entity.User;
 import com.slotwise.auth.repository.UserRepository;
@@ -33,6 +34,7 @@ public class StaffService {
   private final BusinessAccess access;
   private final StaffMapper mapper;
   private final Clock clock;
+  private final AuditService audit;
 
   public StaffService(
       StaffRepository staff,
@@ -41,7 +43,8 @@ public class StaffService {
       PasswordEncoder encoder,
       BusinessAccess access,
       StaffMapper mapper,
-      Clock clock) {
+      Clock clock,
+      AuditService audit) {
     this.staff = staff;
     this.offerings = offerings;
     this.users = users;
@@ -49,6 +52,7 @@ public class StaffService {
     this.access = access;
     this.mapper = mapper;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional
@@ -92,6 +96,7 @@ public class StaffService {
   @Transactional
   public StaffResponse update(UUID businessId, UUID id, UpdateStaffRequest req, AuthUser owner) {
     Staff member = load(businessId, id, owner);
+    StaffResponse before = mapper.toResponse(member);
     if (req.name() != null) member.setName(req.name().trim());
     if (req.email() != null) member.setEmail(req.email());
     if (req.active() != null) member.setActive(req.active());
@@ -100,13 +105,25 @@ public class StaffService {
       member.getOfferingIds().retainAll(ids);
       member.getOfferingIds().addAll(ids);
     }
-    return mapper.toResponse(member);
+    StaffResponse after = mapper.toResponse(member);
+    audit.record(owner.id(), businessId, "STAFF_CHANGED", "STAFF", member.getId(), before, after);
+    return after;
   }
 
   /** Soft delete: bookings keep referencing the staff member, so they are only deactivated. */
   @Transactional
   public void deactivate(UUID businessId, UUID id, AuthUser owner) {
-    load(businessId, id, owner).setActive(false);
+    Staff member = load(businessId, id, owner);
+    StaffResponse before = mapper.toResponse(member);
+    member.setActive(false);
+    audit.record(
+        owner.id(),
+        businessId,
+        "STAFF_DEACTIVATED",
+        "STAFF",
+        member.getId(),
+        before,
+        mapper.toResponse(member));
   }
 
   private Staff load(UUID businessId, UUID id, AuthUser owner) {

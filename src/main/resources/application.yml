@@ -63,3 +63,7 @@ slotwise:
   webhooks:
     allow-private-targets: ${WEBHOOKS_ALLOW_PRIVATE_TARGETS:false}
     timeout: 5s
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    public-per-minute: ${RATE_LIMIT_PUBLIC_PER_MINUTE:60}
+    auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:10}

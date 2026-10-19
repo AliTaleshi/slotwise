@@ -26,6 +26,7 @@
     <jacoco.version>0.8.13</jacoco.version>
     <jjwt.version>0.12.6</jjwt.version>
     <shedlock.version>6.9.2</shedlock.version>
+    <bucket4j.version>8.20.0</bucket4j.version>
   </properties>
 
   <dependencyManagement>
@@ -78,6 +79,11 @@
       <groupId>net.javacrumbs.shedlock</groupId>
       <artifactId>shedlock-provider-jdbc-template</artifactId>
       <version>${shedlock.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.bucket4j</groupId>
+      <artifactId>bucket4j_jdk17-core</artifactId>
+      <version>${bucket4j.version}</version>
     </dependency>
     <dependency>
       <groupId>org.flywaydb</groupId>

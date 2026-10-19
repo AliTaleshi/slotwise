@@ -17,5 +17,6 @@ public final class BookingEvents {
 
   public record BookingCancelled(UUID bookingId, UUID actorId, boolean byOwner) {}
 
-  public record BookingStatusChanged(UUID bookingId, String status, UUID actorId) {}
+  public record BookingStatusChanged(
+      UUID bookingId, String previousStatus, String status, UUID actorId) {}
 }

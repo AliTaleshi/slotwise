@@ -2,6 +2,9 @@ spring:
   mail:
     host: localhost
 slotwise:
+  rate-limit:
+    public-per-minute: 100000
+    auth-per-minute: 100000
   webhooks:
     allow-private-targets: true
   scheduling:

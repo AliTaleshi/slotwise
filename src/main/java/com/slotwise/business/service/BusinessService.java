@@ -1,5 +1,6 @@
 package com.slotwise.business.service;
 
+import com.slotwise.audit.service.AuditService;
 import com.slotwise.auth.security.AuthUser;
 import com.slotwise.business.dto.BusinessDtos.BusinessResponse;
 import com.slotwise.business.dto.BusinessDtos.CreateBusinessRequest;
@@ -32,6 +33,7 @@ public class BusinessService {
   private final StaffMapper staffMapper;
   private final OfferingMapper offeringMapper;
   private final Clock clock;
+  private final AuditService audit;
 
   public BusinessService(
       BusinessRepository businesses,
@@ -41,7 +43,8 @@ public class BusinessService {
       BusinessMapper mapper,
       StaffMapper staffMapper,
       OfferingMapper offeringMapper,
-      Clock clock) {
+      Clock clock,
+      AuditService audit) {
     this.businesses = businesses;
     this.staff = staff;
     this.offerings = offerings;
@@ -50,6 +53,7 @@ public class BusinessService {
     this.staffMapper = staffMapper;
     this.offeringMapper = offeringMapper;
     this.clock = clock;
+    this.audit = audit;
   }
 
   @Transactional
@@ -88,6 +92,7 @@ public class BusinessService {
   @Transactional
   public BusinessResponse update(UUID id, UpdateBusinessRequest req, AuthUser owner) {
     Business b = access.requireOwned(id, owner);
+    BusinessResponse before = mapper.toResponse(b);
     if (req.name() != null) b.setName(req.name().trim());
     if (req.timeZone() != null) b.setTimeZone(req.timeZone());
     if (req.contactEmail() != null) b.setContactEmail(req.contactEmail());
@@ -97,7 +102,10 @@ public class BusinessService {
     if (req.cancelCutoffMinutes() != null) b.setCancelCutoffMinutes(req.cancelCutoffMinutes());
     if (req.slotIntervalMinutes() != null)
       b.setSlotIntervalMinutes(checkInterval(req.slotIntervalMinutes()));
-    return mapper.toResponse(b);
+    BusinessResponse after = mapper.toResponse(b);
+    audit.record(
+        owner.id(), b.getId(), "BUSINESS_SETTINGS_CHANGED", "BUSINESS", b.getId(), before, after);
+    return after;
   }
 
   @Transactional(readOnly = true)

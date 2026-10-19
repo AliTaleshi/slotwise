@@ -1,5 +1,6 @@
 package com.slotwise.offering.service;
 
+import com.slotwise.audit.service.AuditService;
 import com.slotwise.auth.security.AuthUser;
 import com.slotwise.business.service.BusinessAccess;
 import com.slotwise.common.error.ApiException;
@@ -20,12 +21,17 @@ public class OfferingService {
   private final OfferingRepository offerings;
   private final BusinessAccess access;
   private final OfferingMapper mapper;
+  private final AuditService audit;
 
   public OfferingService(
-      OfferingRepository offerings, BusinessAccess access, OfferingMapper mapper) {
+      OfferingRepository offerings,
+      BusinessAccess access,
+      OfferingMapper mapper,
+      AuditService audit) {
     this.offerings = offerings;
     this.access = access;
     this.mapper = mapper;
+    this.audit = audit;
   }
 
   @Transactional
@@ -55,6 +61,7 @@ public class OfferingService {
   public OfferingResponse update(
       UUID businessId, UUID id, UpdateOfferingRequest req, AuthUser owner) {
     Offering o = load(businessId, id, owner);
+    OfferingResponse before = mapper.toResponse(o);
     if (req.name() != null) o.setName(req.name().trim());
     if (req.durationMinutes() != null) o.setDurationMinutes(req.durationMinutes());
     if (req.price() != null) o.setPrice(req.price());
@@ -62,13 +69,25 @@ public class OfferingService {
     if (req.bufferBefore() != null) o.setBufferBefore(req.bufferBefore());
     if (req.bufferAfter() != null) o.setBufferAfter(req.bufferAfter());
     if (req.active() != null) o.setActive(req.active());
-    return mapper.toResponse(o);
+    OfferingResponse after = mapper.toResponse(o);
+    audit.record(owner.id(), businessId, "SERVICE_CHANGED", "SERVICE", o.getId(), before, after);
+    return after;
   }
 
   /** Soft delete: bookings keep referencing the service, so it is only deactivated. */
   @Transactional
   public void deactivate(UUID businessId, UUID id, AuthUser owner) {
-    load(businessId, id, owner).setActive(false);
+    Offering o = load(businessId, id, owner);
+    OfferingResponse before = mapper.toResponse(o);
+    o.setActive(false);
+    audit.record(
+        owner.id(),
+        businessId,
+        "SERVICE_DEACTIVATED",
+        "SERVICE",
+        o.getId(),
+        before,
+        mapper.toResponse(o));
   }
 
   private Offering load(UUID businessId, UUID id, AuthUser owner) {
