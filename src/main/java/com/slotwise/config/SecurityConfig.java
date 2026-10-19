@@ -35,7 +35,8 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/v1/auth/**")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/v1/businesses/*/public")
+                    .requestMatchers(
+                        HttpMethod.GET, "/v1/businesses/*/public", "/v1/businesses/*/availability")
                     .permitAll()
                     .requestMatchers(
                         "/actuator/health/**",
