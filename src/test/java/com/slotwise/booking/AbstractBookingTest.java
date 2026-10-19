@@ -24,10 +24,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * A Berlin business with one service (60 min, 15 min buffer after) and staff "Mia" working Mon-Fri
  * 09:00-17:00. The clock starts Monday 2030-01-07 08:00Z; the bookable Monday is 2030-01-14.
  */
-abstract class AbstractBookingTest extends AbstractIntegrationTest {
+public abstract class AbstractBookingTest extends AbstractIntegrationTest {
 
   /** 09:00 Berlin on 2030-01-14. */
-  static final String NINE = "2030-01-14T08:00:00Z";
+  public static final String NINE = "2030-01-14T08:00:00Z";
 
   static final String TEN = "2030-01-14T09:00:00Z";
   static final String ELEVEN = "2030-01-14T10:00:00Z";
@@ -35,6 +35,7 @@ abstract class AbstractBookingTest extends AbstractIntegrationTest {
   @Autowired protected MockMvc mvc;
   @Autowired protected ObjectMapper json;
   @Autowired protected MutableClock clock;
+  @Autowired protected com.slotwise.support.CapturingMailSender mail;
 
   protected ApiTestSupport api;
   protected String ownerToken;
@@ -46,6 +47,7 @@ abstract class AbstractBookingTest extends AbstractIntegrationTest {
   @BeforeEach
   void setUpBusiness() throws Exception {
     clock.set(TestClockConfig.START);
+    mail.clear();
     api = new ApiTestSupport(mvc, json);
     ownerToken = api.register("OWNER");
     slug = "bk-" + UUID.randomUUID().toString().substring(0, 8);

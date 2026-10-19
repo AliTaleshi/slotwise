@@ -10,7 +10,7 @@
 - [x] 3. Business setup
 - [x] 4. Availability
 - [x] 5. Booking
-- [ ] 6. Notifications
+- [x] 6. Notifications
 - [ ] 7. Webhooks
 - [ ] 8. Owner and staff tools
 - [ ] 9. Polish
@@ -20,3 +20,4 @@
 - Buffers: appointment must sit in working hours and clear of time off; appointment+buffers must clear other bookings (stored ranges include buffers).
 - Booking: holds and bookings are separate tables, each with a GiST exclusion constraint on a generated `time_range` (appointment + buffers). Hold-vs-booking overlap is checked after the hold insert; the bookings constraint is the final guard.
 - Domain events (`BookingEvents`) are published in-transaction; milestone 6 listens with AFTER_COMMIT.
+- Notifications: emails via AFTER_COMMIT + @Async listeners; reminders use windows (24h: 2h grace, 1h: 30min grace) and a `reminders_sent` PK claim for exactly-once. Jobs are ShedLock-guarded and disabled in tests (`slotwise.scheduling.enabled=false`).

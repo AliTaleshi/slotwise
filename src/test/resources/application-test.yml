@@ -2,7 +2,10 @@ spring:
   mail:
     host: localhost
 slotwise:
+  scheduling:
+    enabled: false
   jwt:
     secret: test-secret-test-secret-test-secret-test-secret
     # tests move the fake clock by days; keep access tokens valid across those jumps
     access-ttl: 3650d
+  # jobs are invoked directly by tests so the fake clock and data stay deterministic

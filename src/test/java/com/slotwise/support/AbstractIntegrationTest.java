@@ -10,7 +10,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(TestClockConfig.class)
+@Import({TestClockConfig.class, TestMailConfig.class})
 public abstract class AbstractIntegrationTest {
 
   @DynamicPropertySource

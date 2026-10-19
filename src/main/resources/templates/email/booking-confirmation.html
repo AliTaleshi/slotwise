@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body style="font-family: Arial, sans-serif; color: #222;">
+  <h2>Your booking is confirmed</h2>
+  <p>Hi <span th:text="${guestName}">Guest</span>,</p>
+  <p>Your appointment at <strong th:text="${businessName}">Business</strong> is confirmed.</p>
+  <table cellpadding="4">
+    <tr><td>Service</td><td th:text="${serviceName}">Service</td></tr>
+    <tr><td>With</td><td th:text="${staffName}">Staff</td></tr>
+    <tr><td>Date</td><td th:text="${date}">Date</td></tr>
+    <tr><td>Time</td><td th:text="${time}">Time</td></tr>
+    <tr><td>Price</td><td th:text="${price}">Price</td></tr>
+  </table>
+  <p>All times are in <span th:text="${timeZone}">Zone</span> local time.</p>
+  <p th:unless="${#strings.contains('confirmation','cancelled')}">
+    Need to change plans? <a th:href="${manageUrl}">Manage your booking</a>
+    (changes are possible until <span th:text="${cutoffHours}">24</span> hours before the start).
+  </p>
+</body>
+</html>
