@@ -351,4 +351,105 @@ class BusinessSetupIntegrationTest extends AbstractIntegrationTest {
     assertThat(pub.at("/staff/0/serviceIds/0").asText()).isEqualTo(keep);
     api.send(get("/v1/businesses/unknown-slug/public"), null, null, 404);
   }
+
+  @Test
+  void ownerUpdatesServicesAndStaffAndEveryChangeIsAudited() throws Exception {
+    String owner = api.register("OWNER");
+    String biz = createBusiness(owner, slug()).get("id").asText();
+    String service =
+        api.send(
+                post("/v1/businesses/" + biz + "/services"),
+                owner,
+                Map.of(
+                    "name", "Cleaning", "durationMinutes", 30, "price", "50.00", "currency", "EUR"),
+                201)
+            .get("id")
+            .asText();
+    String staff =
+        api.send(post("/v1/businesses/" + biz + "/staff"), owner, Map.of("name", "Mia"), 201)
+            .get("id")
+            .asText();
+
+    JsonNode updated =
+        api.send(
+            patch("/v1/businesses/" + biz + "/services/" + service),
+            owner,
+            Map.of(
+                "name",
+                "Deep cleaning",
+                "durationMinutes",
+                45,
+                "price",
+                "75.50",
+                "currency",
+                "USD",
+                "bufferBefore",
+                5,
+                "bufferAfter",
+                10,
+                "active",
+                true),
+            200);
+    assertThat(updated.get("name").asText()).isEqualTo("Deep cleaning");
+    assertThat(updated.get("durationMinutes").asInt()).isEqualTo(45);
+    assertThat(updated.get("price").decimalValue()).isEqualByComparingTo("75.50");
+    assertThat(updated.get("currency").asText()).isEqualTo("USD");
+    assertThat(updated.get("bufferBefore").asInt()).isEqualTo(5);
+    assertThat(updated.get("bufferAfter").asInt()).isEqualTo(10);
+    api.send(
+        patch("/v1/businesses/" + biz + "/services/" + service),
+        owner,
+        Map.of("durationMinutes", 1),
+        400);
+    api.send(
+        patch("/v1/businesses/" + biz + "/services/" + UUID.randomUUID()),
+        owner,
+        Map.of("name", "x"),
+        404);
+
+    JsonNode staffUpdated =
+        api.send(
+            patch("/v1/businesses/" + biz + "/staff/" + staff),
+            owner,
+            Map.of(
+                "name",
+                "Mia K.",
+                "email",
+                "mia@example.com",
+                "serviceIds",
+                java.util.List.of(service)),
+            200);
+    assertThat(staffUpdated.get("name").asText()).isEqualTo("Mia K.");
+    assertThat(staffUpdated.get("serviceIds")).hasSize(1);
+    JsonNode cleared =
+        api.send(
+            patch("/v1/businesses/" + biz + "/staff/" + staff),
+            owner,
+            Map.of("serviceIds", java.util.List.of()),
+            200);
+    assertThat(cleared.get("serviceIds")).isEmpty();
+    api.send(
+        patch("/v1/businesses/" + biz + "/staff/" + UUID.randomUUID()),
+        owner,
+        Map.of("name", "x"),
+        404);
+
+    // a service id from another business is not found under this business
+    String otherOwner = api.register("OWNER");
+    String otherBiz = createBusiness(otherOwner, slug()).get("id").asText();
+    api.send(
+        patch("/v1/businesses/" + otherBiz + "/services/" + service),
+        otherOwner,
+        Map.of("name", "x"),
+        404);
+
+    api.send(delete("/v1/businesses/" + biz + "/services/" + service), owner, null, 204);
+    api.send(delete("/v1/businesses/" + biz + "/staff/" + staff), owner, null, 204);
+
+    JsonNode log = api.send(get("/v1/businesses/" + biz + "/audit-log?size=50"), owner, null, 200);
+    java.util.List<String> actions = new java.util.ArrayList<>();
+    log.get("content").forEach(n -> actions.add(n.get("action").asText()));
+    assertThat(actions)
+        .contains("SERVICE_CHANGED", "SERVICE_DEACTIVATED", "STAFF_CHANGED", "STAFF_DEACTIVATED");
+  }
 }

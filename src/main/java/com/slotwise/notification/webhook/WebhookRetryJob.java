@@ -26,8 +26,16 @@ public class WebhookRetryJob {
     this.clock = clock;
   }
 
+  /** Entry point for the scheduler; ShedLock cannot lock methods that return a primitive. */
   @Scheduled(fixedDelayString = "${slotwise.jobs.webhook-retry-interval:PT30S}")
   @SchedulerLock(name = "retry-webhooks", lockAtMostFor = "PT5M", lockAtLeastFor = "PT5S")
+  public void scheduled() {
+    run();
+  }
+
+  /**
+   * @return number of deliveries attempted
+   */
   public int run() {
     List<UUID> due = deliveries.findDueIds(clock.instant(), Pageable.ofSize(100));
     due.forEach(dispatcher::deliver);

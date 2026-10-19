@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface HoldRepository extends JpaRepository<Hold, UUID> {
 
@@ -25,6 +26,7 @@ public interface HoldRepository extends JpaRepository<Hold, UUID> {
           + " and h.blockedFrom < :to and h.blockedTo > :from")
   int deleteExpiredOverlapping(UUID staffId, Instant now, Instant from, Instant to);
 
+  @Transactional
   @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query("delete from Hold h where h.expiresAt <= :now")
   int deleteExpired(Instant now);

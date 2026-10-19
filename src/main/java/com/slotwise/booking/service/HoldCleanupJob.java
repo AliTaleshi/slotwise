@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Physically removes expired holds. Availability already ignores them before this runs. */
 @Component
@@ -23,9 +22,16 @@ public class HoldCleanupJob {
     this.clock = clock;
   }
 
+  /** Entry point for the scheduler; ShedLock cannot lock methods that return a primitive. */
   @Scheduled(fixedDelayString = "${slotwise.jobs.hold-cleanup-interval:PT1M}")
   @SchedulerLock(name = "cleanup-holds", lockAtMostFor = "PT5M", lockAtLeastFor = "PT10S")
-  @Transactional
+  public void scheduled() {
+    run();
+  }
+
+  /**
+   * @return number of holds removed
+   */
   public int run() {
     int removed = holds.deleteExpired(clock.instant());
     if (removed > 0) {
