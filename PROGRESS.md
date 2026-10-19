@@ -6,7 +6,7 @@
 
 ## Milestones
 - [x] 1. Foundation
-- [ ] 2. Auth
+- [x] 2. Auth
 - [ ] 3. Business setup
 - [ ] 4. Availability
 - [ ] 5. Booking

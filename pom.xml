@@ -24,6 +24,7 @@
     <zonky.binaries.version>16.9.0</zonky.binaries.version>
     <spotless.version>2.44.5</spotless.version>
     <jacoco.version>0.8.13</jacoco.version>
+    <jjwt.version>0.12.6</jjwt.version>
   </properties>
 
   <dependencyManagement>
@@ -76,6 +77,23 @@
       <groupId>org.springdoc</groupId>
       <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
       <version>${springdoc.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.mapstruct</groupId>
